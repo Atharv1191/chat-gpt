@@ -1,7 +1,7 @@
 
 const express = require("express");
 const protect = require("../middelewers/auth");
-const { textMessageController, imageMessageController } = require("../controllers/MessageController");
+const { textMessageController, imageMessageController } = require("../controllers/messageController");
 
 const router = express.Router()
 
