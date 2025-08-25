@@ -2,10 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useAppContect } from '../context/AppContext'
 import { assets } from '../assets/assets'
 import Message from './Message'
+import toast from 'react-hot-toast'
 
 const ChatBox = () => {
     const containerRef = useRef(null)
-    const {selectedChat,theme} = useAppContect()
+    const {selectedChat,theme,user,axios,token,setUser} = useAppContect()
     const [messages,setMessages] = useState([])
     const [loading,setLoading] = useState(false)
     const [prompt,setPrompt] = useState("");
@@ -13,7 +14,35 @@ const ChatBox = () => {
     const [isPublished,setIsPublished] = useState(false)
 
     const onSubmit = async(e)=>{
-        e.preventDefault()
+       
+        try {
+             e.preventDefault()
+             if(!user) return toast("Login to use message")
+                setLoading(true)
+            
+            const promptCopy = prompt
+            setPrompt("")
+            setMessages(prev => [...prev,{role:'user',content:prompt,timestamp:Date.now(),isImage:false}])
+            const  {data} = await axios.post(`/api/message/${mode}`,{chatId:selectedChat._id,prompt,isPublished},{headers:{Authorization:token}})
+            if(data.success){
+                setMessages(prev=>[...prev,data.reply])
+                //decrese credits
+                if(mode === 'image'){
+                    setUser(prev=>({...prev,credits:prev.credits -2}))
+                }else{
+                     setUser(prev=>({...prev,credits:prev.credits -1}))
+                }
+                }else{
+                    toast.error(data.message)
+                    setPrompt(promptCopy)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            
+        }finally{
+            setPrompt("")
+            setLoading(false)
+        }
     }
     useEffect(()=>{
         if(containerRef.current){
@@ -64,7 +93,7 @@ const ChatBox = () => {
             </label>
         )}
         {/* prompt Input box */}
-        <form onSubmit={onSubmit} className='bg-primary/20 dark:bg-[#583C79]/30 border border-primary dark:border-[#80609F]/30 rounded-full max-w-2xl p-3 pl-4 mx-auto flex gap-4 items-center'>
+        {/* <form onSubmit={onSubmit} className='bg-primary/20 dark:bg-[#583C79]/30 border border-primary dark:border-[#80609F]/30 rounded-full max-w-2xl p-3 pl-4 mx-auto flex gap-4 items-center'>
             <select onChange={(e)=>setMode(e.target.value)} value={mode} className='text-sm pl-3 pr-2 outline-none'>
                 <option className='dark:bg-purple-900' value="text">
                     Text
@@ -77,7 +106,44 @@ const ChatBox = () => {
             <button className='' disabled={loading} onClick={onSubmit} type='submit'>
                 <img src={loading ? assets.stop_icon:assets.send_icon} className='w-8 cursor-pointer' alt="" />
             </button>
-        </form>
+        </form> */}
+        {/* prompt Input box */}
+<form 
+  onSubmit={onSubmit} 
+  className='bg-primary/20 dark:bg-[#583C79]/30 border border-primary dark:border-[#80609F]/30 rounded-full max-w-4xl w-full p-3 pl-4 mx-auto flex gap-4 items-center'
+>
+  <select 
+    onChange={(e)=>setMode(e.target.value)} 
+    value={mode} 
+    className='text-sm pl-3 pr-2 outline-none'
+  >
+    <option className='dark:bg-purple-900' value="text">Text</option>
+    <option className='dark:bg-purple-900' value="image">Image</option>
+  </select>
+
+  <input 
+    onChange={(e)=>setPrompt(e.target.value)} 
+    value={prompt} 
+    className='flex-1 w-full text-sm outline-none' 
+    required 
+    type="text" 
+    placeholder='Type Your prompt here...' 
+  />
+
+  <button 
+    className='' 
+    disabled={loading} 
+    onClick={onSubmit} 
+    type='submit'
+  >
+    <img 
+      src={loading ? assets.stop_icon : assets.send_icon} 
+      className='w-8 cursor-pointer' 
+      alt="" 
+    />
+  </button>
+</form>
+
 
     </div>
   )
